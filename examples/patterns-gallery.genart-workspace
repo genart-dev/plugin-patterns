@@ -1,0 +1,41 @@
+{
+  "genart-workspace": "1.0",
+  "name": "Pattern Preset Gallery",
+  "sketches": [
+    { "file": "stripe/pinstripe.genart", "x": 0, "y": 0 },
+    { "file": "stripe/ticking.genart", "x": 700, "y": 0 },
+    { "file": "stripe/awning.genart", "x": 1400, "y": 0 },
+    { "file": "stripe/nautical.genart", "x": 2100, "y": 0 },
+    { "file": "stripe/candy.genart", "x": 2800, "y": 0 },
+    { "file": "stripe/barber-pole.genart", "x": 3500, "y": 0 },
+
+    { "file": "dot/polka-small.genart", "x": 0, "y": 700 },
+    { "file": "dot/polka-large.genart", "x": 700, "y": 700 },
+    { "file": "dot/halftone.genart", "x": 1400, "y": 700 },
+    { "file": "dot/hex-dot.genart", "x": 2100, "y": 700 },
+    { "file": "dot/confetti.genart", "x": 2800, "y": 700 },
+    { "file": "dot/sprinkle.genart", "x": 3500, "y": 700 },
+
+    { "file": "checker/checker-small.genart", "x": 0, "y": 1400 },
+    { "file": "checker/checker-large.genart", "x": 700, "y": 1400 },
+    { "file": "checker/gingham.genart", "x": 1400, "y": 1400 },
+    { "file": "checker/buffalo-check.genart", "x": 2100, "y": 1400 },
+    { "file": "checker/houndstooth.genart", "x": 2800, "y": 1400 },
+
+    { "file": "wave/gentle-wave.genart", "x": 0, "y": 2100 },
+    { "file": "wave/choppy.genart", "x": 700, "y": 2100 },
+    { "file": "wave/zigzag.genart", "x": 1400, "y": 2100 },
+    { "file": "wave/scallop.genart", "x": 2100, "y": 2100 },
+    { "file": "wave/ogee.genart", "x": 2800, "y": 2100 },
+
+    { "file": "fill/hatch-light.genart", "x": 0, "y": 2800 },
+    { "file": "fill/hatch-medium.genart", "x": 700, "y": 2800 },
+    { "file": "fill/hatch-dense.genart", "x": 1400, "y": 2800 },
+    { "file": "fill/crosshatch-light.genart", "x": 2100, "y": 2800 },
+    { "file": "fill/crosshatch-dense.genart", "x": 2800, "y": 2800 },
+    { "file": "fill/stipple-light.genart", "x": 3500, "y": 2800 },
+    { "file": "fill/stipple-dense.genart", "x": 4200, "y": 2800 },
+    { "file": "fill/scumble.genart", "x": 4900, "y": 2800 },
+    { "file": "fill/contour.genart", "x": 5600, "y": 2800 }
+  ]
+}
