@@ -84,6 +84,52 @@ export interface PatternPreset {
 }
 
 // ---------------------------------------------------------------------------
+// Geometric pattern presets (stripe, dot, checker, wave)
+// ---------------------------------------------------------------------------
+
+/** Preset for patterns:stripe layer type. */
+export interface StripePreset {
+  layerType: "patterns:stripe";
+  angle: number;
+  spacing: number;
+  lineWidth: number;
+  colors: string[];
+  dashPattern?: number[];
+}
+
+/** Preset for patterns:dot layer type. */
+export interface DotPreset {
+  layerType: "patterns:dot";
+  spacing: number;
+  radius: number;
+  offset: boolean;
+  color: string;
+  backgroundColor: string;
+}
+
+/** Preset for patterns:checker layer type. */
+export interface CheckerPreset {
+  layerType: "patterns:checker";
+  cellSize: number;
+  colors: string[];
+  angle: number;
+}
+
+/** Preset for patterns:wave layer type. */
+export interface WavePreset {
+  layerType: "patterns:wave";
+  amplitude: number;
+  frequency: number;
+  phase: number;
+  lineWidth: number;
+  waveform: "sine" | "triangle" | "square" | "sawtooth";
+  color: string;
+  spacing: number;
+}
+
+export type GeometricPreset = StripePreset | DotPreset | CheckerPreset | WavePreset;
+
+// ---------------------------------------------------------------------------
 // Shading
 // ---------------------------------------------------------------------------
 

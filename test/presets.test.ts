@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PATTERN_PRESETS, getPatternPreset, resolveStrategy } from "../src/core/presets.js";
+import { PATTERN_PRESETS, GEOMETRIC_PRESETS, getPatternPreset, getGeometricPreset, resolveStrategy } from "../src/core/presets.js";
 import type { PatternStrategy } from "../src/core/types.js";
 
 describe("PATTERN_PRESETS", () => {
@@ -138,5 +138,153 @@ describe("resolveStrategy", () => {
     const strategy: PatternStrategy = { type: "contour", spacing: 10, smoothing: 0.2 };
     const result = resolveStrategy(strategy);
     expect(result!.lineWidth).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Geometric presets
+// ---------------------------------------------------------------------------
+
+describe("GEOMETRIC_PRESETS", () => {
+  it("has exactly 22 presets", () => {
+    expect(Object.keys(GEOMETRIC_PRESETS)).toHaveLength(22);
+  });
+
+  describe("stripe presets (6)", () => {
+    const stripeNames = ["pinstripe", "ticking", "awning", "nautical", "candy", "barber-pole"];
+
+    it("contains all stripe presets", () => {
+      for (const name of stripeNames) {
+        expect(GEOMETRIC_PRESETS[name]).toBeDefined();
+        expect(GEOMETRIC_PRESETS[name]!.layerType).toBe("patterns:stripe");
+      }
+    });
+
+    it("all stripe presets have required fields", () => {
+      for (const name of stripeNames) {
+        const p = GEOMETRIC_PRESETS[name]!;
+        if (p.layerType === "patterns:stripe") {
+          expect(p.angle).toBeGreaterThanOrEqual(0);
+          expect(p.spacing).toBeGreaterThan(0);
+          expect(p.lineWidth).toBeGreaterThan(0);
+          expect(p.colors.length).toBeGreaterThanOrEqual(2);
+        }
+      }
+    });
+  });
+
+  describe("dot presets (6)", () => {
+    const dotNames = ["polka-small", "polka-large", "halftone", "hex-dot", "confetti", "sprinkle"];
+
+    it("contains all dot presets", () => {
+      for (const name of dotNames) {
+        expect(GEOMETRIC_PRESETS[name]).toBeDefined();
+        expect(GEOMETRIC_PRESETS[name]!.layerType).toBe("patterns:dot");
+      }
+    });
+
+    it("all dot presets have required fields", () => {
+      for (const name of dotNames) {
+        const p = GEOMETRIC_PRESETS[name]!;
+        if (p.layerType === "patterns:dot") {
+          expect(p.spacing).toBeGreaterThan(0);
+          expect(p.radius).toBeGreaterThan(0);
+          expect(typeof p.offset).toBe("boolean");
+          expect(p.color).toBeTruthy();
+          expect(p.backgroundColor).toBeTruthy();
+        }
+      }
+    });
+
+    it("polka-large has larger radius than polka-small", () => {
+      const small = GEOMETRIC_PRESETS["polka-small"]!;
+      const large = GEOMETRIC_PRESETS["polka-large"]!;
+      if (small.layerType === "patterns:dot" && large.layerType === "patterns:dot") {
+        expect(large.radius).toBeGreaterThan(small.radius);
+      }
+    });
+
+    it("halftone uses hex offset", () => {
+      const p = GEOMETRIC_PRESETS["halftone"]!;
+      if (p.layerType === "patterns:dot") {
+        expect(p.offset).toBe(true);
+      }
+    });
+  });
+
+  describe("checker presets (5)", () => {
+    const checkerNames = ["checker-small", "checker-large", "gingham", "buffalo-check", "houndstooth"];
+
+    it("contains all checker presets", () => {
+      for (const name of checkerNames) {
+        expect(GEOMETRIC_PRESETS[name]).toBeDefined();
+        expect(GEOMETRIC_PRESETS[name]!.layerType).toBe("patterns:checker");
+      }
+    });
+
+    it("all checker presets have required fields", () => {
+      for (const name of checkerNames) {
+        const p = GEOMETRIC_PRESETS[name]!;
+        if (p.layerType === "patterns:checker") {
+          expect(p.cellSize).toBeGreaterThan(0);
+          expect(p.colors.length).toBeGreaterThanOrEqual(2);
+          expect(p.angle).toBeGreaterThanOrEqual(0);
+        }
+      }
+    });
+
+    it("checker-large has larger cellSize than checker-small", () => {
+      const small = GEOMETRIC_PRESETS["checker-small"]!;
+      const large = GEOMETRIC_PRESETS["checker-large"]!;
+      if (small.layerType === "patterns:checker" && large.layerType === "patterns:checker") {
+        expect(large.cellSize).toBeGreaterThan(small.cellSize);
+      }
+    });
+  });
+
+  describe("wave presets (5)", () => {
+    const waveNames = ["gentle-wave", "choppy", "zigzag", "scallop", "ogee"];
+
+    it("contains all wave presets", () => {
+      for (const name of waveNames) {
+        expect(GEOMETRIC_PRESETS[name]).toBeDefined();
+        expect(GEOMETRIC_PRESETS[name]!.layerType).toBe("patterns:wave");
+      }
+    });
+
+    it("all wave presets have required fields", () => {
+      for (const name of waveNames) {
+        const p = GEOMETRIC_PRESETS[name]!;
+        if (p.layerType === "patterns:wave") {
+          expect(p.amplitude).toBeGreaterThan(0);
+          expect(p.frequency).toBeGreaterThan(0);
+          expect(p.lineWidth).toBeGreaterThan(0);
+          expect(["sine", "triangle", "square", "sawtooth"]).toContain(p.waveform);
+          expect(p.color).toBeTruthy();
+          expect(p.spacing).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it("zigzag uses triangle waveform", () => {
+      const p = GEOMETRIC_PRESETS["zigzag"]!;
+      if (p.layerType === "patterns:wave") {
+        expect(p.waveform).toBe("triangle");
+      }
+    });
+  });
+});
+
+describe("getGeometricPreset", () => {
+  it("returns preset for known names", () => {
+    expect(getGeometricPreset("pinstripe")).toBeDefined();
+    expect(getGeometricPreset("halftone")).toBeDefined();
+    expect(getGeometricPreset("gingham")).toBeDefined();
+    expect(getGeometricPreset("zigzag")).toBeDefined();
+  });
+
+  it("returns undefined for unknown names", () => {
+    expect(getGeometricPreset("nonexistent")).toBeUndefined();
+    expect(getGeometricPreset("")).toBeUndefined();
   });
 });
