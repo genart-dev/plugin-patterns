@@ -33,7 +33,7 @@ import { patternMcpTools } from "./pattern-tools.js";
 const patternsPlugin: DesignPlugin = {
   id: "patterns",
   name: "Patterns",
-  version: "0.2.0",
+  version: "0.2.1",
   tier: "free",
   description:
     "Geometric pattern fills and decorative tiling: hatch, crosshatch, stipple, stripe, dot, checker, wave, herringbone, tile, triangle, diamond, hexagon, star, circle, japanese, lattice, plaid, cube, leaf, floral, memphis, eye, spiral, terrazzo, square, octagon, scale, chainlink, ethnic, and custom patterns.",

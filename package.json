@@ -1,6 +1,6 @@
 {
   "name": "@genart-dev/plugin-patterns",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Geometric pattern fills and decorative tiling layer plugins for genart.dev",
   "type": "module",
   "main": "./dist/index.cjs",
