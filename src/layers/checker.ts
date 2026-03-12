@@ -112,8 +112,8 @@ export const checkerLayerType: LayerTypeDefinition = {
     const cx = bounds.x + bounds.width / 2;
     const cy = bounds.y + bounds.height / 2;
     const diagonal = Math.sqrt(bounds.width * bounds.width + bounds.height * bounds.height);
-    const cols = Math.ceil(diagonal / cellSize) + 2;
-    const rows = Math.ceil(diagonal / cellSize) + 2;
+    const cols = Math.ceil((2 * diagonal) / cellSize) + 2;
+    const rows = Math.ceil((2 * diagonal) / cellSize) + 2;
 
     ctx.save();
     ctx.translate(cx, cy);

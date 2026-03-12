@@ -138,7 +138,7 @@ export const stripeLayerType: LayerTypeDefinition = {
     const cy = bounds.y + bounds.height / 2;
     const diagonal = Math.sqrt(bounds.width * bounds.width + bounds.height * bounds.height);
     const bandWidth = lineWidth + spacing;
-    const totalBands = Math.ceil(diagonal / bandWidth) + 2;
+    const totalBands = Math.ceil((2 * diagonal) / bandWidth) + 2;
     const startOffset = -(totalBands / 2) * bandWidth;
 
     ctx.save();
