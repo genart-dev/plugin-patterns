@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-CLI="node cli/dist/index.js"
+CLI="${GENART_CLI:-npx @genart-dev/cli}"
 OUT="galleries"
 COLS=7
 TILE="150x150"
