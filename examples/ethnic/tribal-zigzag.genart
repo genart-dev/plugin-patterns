@@ -1,0 +1,54 @@
+{
+  "genart": "1.3",
+  "id": "81aa8342-cf1c-4273-89c3-91be8b3259be",
+  "title": "Tribal Zigzag",
+  "created": "2026-03-11T12:00:00.000Z",
+  "modified": "2026-03-11T12:00:00.000Z",
+  "renderer": {
+    "type": "canvas2d"
+  },
+  "canvas": {
+    "width": 800,
+    "height": 800
+  },
+  "parameters": [],
+  "colors": [],
+  "state": {
+    "seed": 42,
+    "params": {},
+    "colorPalette": []
+  },
+  "algorithm": "function sketch(ctx, state) {}",
+  "layers": [
+    {
+      "id": "c6db68fb-e618-45d3-b5f0-374a5535c6d6",
+      "type": "patterns:ethnic",
+      "name": "Tribal Zigzag",
+      "visible": true,
+      "locked": false,
+      "opacity": 1,
+      "blendMode": "normal",
+      "properties": {
+        "style": "tribal-zigzag",
+        "size": 24,
+        "color1": "#784212",
+        "color2": "#fef9e7",
+        "rotation": 0,
+        "region": "{\"type\":\"bounds\"}",
+        "opacity": 1,
+        "lineWidth": 2
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 600,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0
+      }
+    }
+  ]
+}

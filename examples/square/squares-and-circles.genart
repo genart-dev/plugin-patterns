@@ -1,0 +1,54 @@
+{
+  "genart": "1.3",
+  "id": "2f842df1-8fbd-4027-9b66-a69e25544158",
+  "title": "Squares And Circles",
+  "created": "2026-03-11T12:00:00.000Z",
+  "modified": "2026-03-11T12:00:00.000Z",
+  "renderer": {
+    "type": "canvas2d"
+  },
+  "canvas": {
+    "width": 800,
+    "height": 800
+  },
+  "parameters": [],
+  "colors": [],
+  "state": {
+    "seed": 42,
+    "params": {},
+    "colorPalette": []
+  },
+  "algorithm": "function sketch(ctx, state) {}",
+  "layers": [
+    {
+      "id": "088173be-b52d-4899-b5cf-cfc7184f8bce",
+      "type": "patterns:square",
+      "name": "Squares And Circles",
+      "visible": true,
+      "locked": false,
+      "opacity": 1,
+      "blendMode": "normal",
+      "properties": {
+        "style": "circles-and-squares",
+        "size": 34,
+        "color1": "#8e44ad",
+        "color2": "#f5eef8",
+        "rotation": 0,
+        "region": "{\"type\":\"bounds\"}",
+        "opacity": 1,
+        "gap": 2
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 600,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "genart": "1.3",
+  "id": "f2b5b95c-0956-468c-88e8-4c89dd65478c",
+  "title": "Fishscale Classic",
+  "created": "2026-03-11T12:00:00.000Z",
+  "modified": "2026-03-11T12:00:00.000Z",
+  "renderer": {
+    "type": "canvas2d"
+  },
+  "canvas": {
+    "width": 800,
+    "height": 800
+  },
+  "parameters": [],
+  "colors": [],
+  "state": {
+    "seed": 42,
+    "params": {},
+    "colorPalette": []
+  },
+  "algorithm": "function sketch(ctx, state) {}",
+  "layers": [
+    {
+      "id": "93915375-fe4a-469a-a691-8ac8bbcb42f0",
+      "type": "patterns:scale",
+      "name": "Fishscale Classic",
+      "visible": true,
+      "locked": false,
+      "opacity": 1,
+      "blendMode": "normal",
+      "properties": {
+        "style": "fishscale",
+        "size": 24,
+        "color1": "#2c3e50",
+        "color2": "#ecf0f1",
+        "rotation": 0,
+        "region": "{\"type\":\"bounds\"}",
+        "opacity": 1,
+        "lineWidth": 1
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 600,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0
+      }
+    }
+  ]
+}

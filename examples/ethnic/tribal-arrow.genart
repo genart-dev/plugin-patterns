@@ -1,0 +1,54 @@
+{
+  "genart": "1.3",
+  "id": "bd2daef8-d7cb-4e88-a110-92cb0ecef88e",
+  "title": "Tribal Arrow",
+  "created": "2026-03-11T12:00:00.000Z",
+  "modified": "2026-03-11T12:00:00.000Z",
+  "renderer": {
+    "type": "canvas2d"
+  },
+  "canvas": {
+    "width": 800,
+    "height": 800
+  },
+  "parameters": [],
+  "colors": [],
+  "state": {
+    "seed": 42,
+    "params": {},
+    "colorPalette": []
+  },
+  "algorithm": "function sketch(ctx, state) {}",
+  "layers": [
+    {
+      "id": "e1fe815e-de7a-4882-9d7e-c22db448e495",
+      "type": "patterns:ethnic",
+      "name": "Tribal Arrow",
+      "visible": true,
+      "locked": false,
+      "opacity": 1,
+      "blendMode": "normal",
+      "properties": {
+        "style": "tribal-arrow",
+        "size": 22,
+        "color1": "#2c3e50",
+        "color2": "#ecf0f1",
+        "rotation": 0,
+        "region": "{\"type\":\"bounds\"}",
+        "opacity": 1,
+        "lineWidth": 2
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 600,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "genart": "1.3",
+  "id": "a903a24a-d840-4fe0-883a-9f5c41e58aff",
+  "title": "Interlocking Rings",
+  "created": "2026-03-11T12:00:00.000Z",
+  "modified": "2026-03-11T12:00:00.000Z",
+  "renderer": {
+    "type": "canvas2d"
+  },
+  "canvas": {
+    "width": 800,
+    "height": 800
+  },
+  "parameters": [],
+  "colors": [],
+  "state": {
+    "seed": 42,
+    "params": {},
+    "colorPalette": []
+  },
+  "algorithm": "function sketch(ctx, state) {}",
+  "layers": [
+    {
+      "id": "f6612fc4-c48c-4ccc-8cc8-088d03292b71",
+      "type": "patterns:chainlink",
+      "name": "Interlocking Rings",
+      "visible": true,
+      "locked": false,
+      "opacity": 1,
+      "blendMode": "normal",
+      "properties": {
+        "style": "double",
+        "size": 28,
+        "color1": "#d4ac0d",
+        "color2": "#fef9e7",
+        "rotation": 0,
+        "region": "{\"type\":\"bounds\"}",
+        "opacity": 1,
+        "lineWidth": 1.5,
+        "gap": 3
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 600,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0
+      }
+    }
+  ]
+}

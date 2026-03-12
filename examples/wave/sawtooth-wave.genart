@@ -1,0 +1,55 @@
+{
+  "genart": "1.3",
+  "id": "1ddf87ff-a09f-491f-8d95-2f847954db86",
+  "title": "Sawtooth Wave",
+  "created": "2026-03-11T12:00:00.000Z",
+  "modified": "2026-03-11T12:00:00.000Z",
+  "renderer": {
+    "type": "canvas2d"
+  },
+  "canvas": {
+    "width": 800,
+    "height": 800
+  },
+  "parameters": [],
+  "colors": [],
+  "state": {
+    "seed": 42,
+    "params": {},
+    "colorPalette": []
+  },
+  "algorithm": "function sketch(ctx, state) {}",
+  "layers": [
+    {
+      "id": "910c4459-e275-4b41-8f9f-097869360818",
+      "type": "patterns:wave",
+      "name": "sawtooth-wave",
+      "visible": true,
+      "locked": false,
+      "opacity": 1,
+      "blendMode": "normal",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 600,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0
+      },
+      "properties": {
+        "amplitude": 18,
+        "frequency": 2.5,
+        "phase": 0,
+        "lineWidth": 2,
+        "waveform": "sawtooth",
+        "color": "#c0392b",
+        "spacing": 14,
+        "region": "{\"type\":\"bounds\"}",
+        "opacity": 1
+      }
+    }
+  ]
+}
