@@ -111,32 +111,35 @@ function drawIsoCube(
   color2: string,
   color3: string,
 ): void {
-  const h = size * (Math.sqrt(3) / 2);
-  // Top face
+  // True isometric: edge length = size
+  // halfW = horizontal half-span, halfH = vertical step per edge
+  const halfW = size * (Math.sqrt(3) / 2);
+  const halfH = size / 2;
+  // Top face (diamond/rhombus)
   ctx.fillStyle = color1;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - h);
-  ctx.lineTo(cx + size / 2, cy - h / 2);
-  ctx.lineTo(cx, cy);
-  ctx.lineTo(cx - size / 2, cy - h / 2);
+  ctx.moveTo(cx, cy - size);          // top vertex
+  ctx.lineTo(cx + halfW, cy - halfH); // right
+  ctx.lineTo(cx, cy);                 // center
+  ctx.lineTo(cx - halfW, cy - halfH); // left
   ctx.closePath();
   ctx.fill();
   // Left face
   ctx.fillStyle = color2;
   ctx.beginPath();
-  ctx.moveTo(cx - size / 2, cy - h / 2);
-  ctx.lineTo(cx, cy);
-  ctx.lineTo(cx, cy + h);
-  ctx.lineTo(cx - size / 2, cy + h / 2);
+  ctx.moveTo(cx - halfW, cy - halfH); // top-left
+  ctx.lineTo(cx, cy);                 // center
+  ctx.lineTo(cx, cy + size);          // bottom
+  ctx.lineTo(cx - halfW, cy + halfH); // bottom-left
   ctx.closePath();
   ctx.fill();
   // Right face
   ctx.fillStyle = color3;
   ctx.beginPath();
-  ctx.moveTo(cx + size / 2, cy - h / 2);
-  ctx.lineTo(cx, cy);
-  ctx.lineTo(cx, cy + h);
-  ctx.lineTo(cx + size / 2, cy + h / 2);
+  ctx.moveTo(cx + halfW, cy - halfH); // top-right
+  ctx.lineTo(cx, cy);                 // center
+  ctx.lineTo(cx, cy + size);          // bottom
+  ctx.lineTo(cx + halfW, cy + halfH); // bottom-right
   ctx.closePath();
   ctx.fill();
 }
@@ -154,21 +157,21 @@ function renderIsometric(
   color2: string,
   color3: string,
 ): void {
-  const h = size * (Math.sqrt(3) / 2);
-  const unitW = size + gap;
-  const unitH = h * 2 + gap;
-  const cols = Math.ceil((2 * diagonal) / unitW) + 4;
-  const rows = Math.ceil((2 * diagonal) / unitH) + 4;
+  // True isometric cube: width = size*√3, height = size*2
+  const cubeW = size * Math.sqrt(3) + gap;
+  const cubeH = size * 1.5 + gap; // rows overlap by size/2
+  const cols = Math.ceil((2 * diagonal) / cubeW) + 4;
+  const rows = Math.ceil((2 * diagonal) / cubeH) + 4;
 
   ctx.fillStyle = "#f8f9fa";
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
   for (let row = 0; row < rows; row++) {
-    const xOff = row % 2 === 0 ? 0 : unitW / 2;
+    const xOff = row % 2 === 0 ? 0 : cubeW / 2;
     for (let col = 0; col < cols; col++) {
-      const x = -diagonal + col * unitW + xOff;
-      const y = -diagonal + row * unitH;
-      drawIsoCube(ctx, x, y, size - gap, color1, color2, color3);
+      const x = -diagonal + col * cubeW + xOff;
+      const y = -diagonal + row * cubeH;
+      drawIsoCube(ctx, x, y, size - gap * 0.5, color1, color2, color3);
     }
   }
 }
@@ -182,21 +185,21 @@ function renderStacked(
   color2: string,
   color3: string,
 ): void {
-  const h = size * (Math.sqrt(3) / 2);
-  const unitW = size * 1.5 + gap;
-  const unitH = h * 2 + gap;
-  const cols = Math.ceil((2 * diagonal) / unitW) + 4;
-  const rows = Math.ceil((2 * diagonal) / unitH) + 4;
+  // Stacked cubes: tighter vertical packing, offset columns
+  const cubeW = size * Math.sqrt(3) + gap;
+  const cubeH = size * 2 + gap; // full cube height for stacking
+  const cols = Math.ceil((2 * diagonal) / cubeW) + 4;
+  const rows = Math.ceil((2 * diagonal) / cubeH) + 4;
 
   ctx.fillStyle = "#f8f9fa";
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
   for (let row = 0; row < rows; row++) {
-    const xOff = row % 2 === 0 ? 0 : unitW / 2;
+    const xOff = row % 2 === 0 ? 0 : cubeW / 2;
     for (let col = 0; col < cols; col++) {
-      const x = -diagonal + col * unitW + xOff;
-      const y = -diagonal + row * unitH;
-      drawIsoCube(ctx, x, y, size - gap, color1, color2, color3);
+      const x = -diagonal + col * cubeW + xOff;
+      const y = -diagonal + row * cubeH;
+      drawIsoCube(ctx, x, y, size - gap * 0.5, color1, color2, color3);
     }
   }
 }
@@ -210,50 +213,58 @@ function renderTumblingBlocks(
   color2: string,
   color3: string,
 ): void {
-  const h = size * (Math.sqrt(3) / 2);
-  const unitW = size * 1.5;
-  const unitH = h;
-  const cols = Math.ceil((2 * diagonal) / unitW) + 4;
-  const rows = Math.ceil((2 * diagonal) / unitH) + 4;
+  // Classic tumbling blocks: tessellating 60°/120° rhombuses in 3 orientations
+  // Each "cube" = 3 rhombuses meeting at a center point
+  const halfW = size * (Math.sqrt(3) / 2);
+  const halfH = size / 2;
+
+  // Grid: cubes tile with centers on a triangular grid
+  const cubeW = halfW * 2; // horizontal distance between cube centers in a row
+  const cubeH = size * 3;  // vertical distance between matching rows
+
+  const cols = Math.ceil((2 * diagonal) / cubeW) + 4;
+  const rows = Math.ceil((2 * diagonal) / cubeH) + 4;
 
   ctx.fillStyle = "#f8f9fa";
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
   for (let row = 0; row < rows; row++) {
-    const xOff = row % 2 === 0 ? 0 : unitW * 0.5;
     for (let col = 0; col < cols; col++) {
-      const x = -diagonal + col * unitW + xOff;
-      const y = -diagonal + row * unitH;
-      // Three rhombuses forming tumbling block illusion
-      const hs = size / 2;
-      const hh = h / 2;
-      // Top rhombus
-      ctx.fillStyle = color1;
-      ctx.beginPath();
-      ctx.moveTo(x, y - hh);
-      ctx.lineTo(x + hs, y);
-      ctx.lineTo(x, y + hh);
-      ctx.lineTo(x - hs, y);
-      ctx.closePath();
-      ctx.fill();
-      // Left rhombus
-      ctx.fillStyle = color2;
-      ctx.beginPath();
-      ctx.moveTo(x - hs, y);
-      ctx.lineTo(x, y + hh);
-      ctx.lineTo(x - hs, y + h);
-      ctx.lineTo(x - size, y + hh);
-      ctx.closePath();
-      ctx.fill();
-      // Right rhombus
-      ctx.fillStyle = color3;
-      ctx.beginPath();
-      ctx.moveTo(x + hs, y);
-      ctx.lineTo(x, y + hh);
-      ctx.lineTo(x + hs, y + h);
-      ctx.lineTo(x + size, y + hh);
-      ctx.closePath();
-      ctx.fill();
+      // Two cubes per cell: one at grid position, one offset
+      for (let sub = 0; sub < 2; sub++) {
+        const cx = -diagonal + col * cubeW + (sub === 1 ? halfW : 0);
+        const cy = -diagonal + row * cubeH + (sub === 1 ? size * 1.5 : 0);
+
+        // Top rhombus (horizontal diamond)
+        ctx.fillStyle = color1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx + halfW, cy - halfH);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx - halfW, cy - halfH);
+        ctx.closePath();
+        ctx.fill();
+
+        // Left rhombus
+        ctx.fillStyle = color2;
+        ctx.beginPath();
+        ctx.moveTo(cx - halfW, cy - halfH);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx, cy + size);
+        ctx.lineTo(cx - halfW, cy + halfH);
+        ctx.closePath();
+        ctx.fill();
+
+        // Right rhombus
+        ctx.fillStyle = color3;
+        ctx.beginPath();
+        ctx.moveTo(cx + halfW, cy - halfH);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx, cy + size);
+        ctx.lineTo(cx + halfW, cy + halfH);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
   }
 }

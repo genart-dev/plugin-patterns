@@ -147,39 +147,39 @@ export const herringboneLayerType: LayerTypeDefinition = {
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    // Herringbone: alternating V-shaped rows of rectangular blocks.
-    // Each row has blocks tilted in alternating directions forming a zigzag.
-    const unitW = blockWidth + gap;
-    const unitH = blockHeight + gap;
-    const cols = Math.ceil((2 * diagonal) / unitW) + 4;
-    const rows = Math.ceil((2 * diagonal) / unitH) + 4;
-    const halfW = (cols * unitW) / 2;
-    const halfH = (rows * unitH) / 2;
+    // True herringbone: bricks at ±45° forming V-shaped zigzag rows.
+    const bw = blockWidth;
+    const bh = blockHeight;
+    const g = gap;
+    const cos45 = Math.SQRT1_2;
+    // Projected dimensions of a 45°-rotated brick
+    const projW = (bw + bh) * cos45; // width when rotated 45°
+    const projH = (bw - bh) * cos45; // height offset between top and bottom
+
+    // V-unit: two bricks form a chevron
+    // Horizontal spacing = projected width of one brick
+    // Vertical spacing = projected width (bricks stack diagonally)
+    const stepX = bw * cos45 + g * 0.5;
+    const stepY = bw * cos45 + g * 0.5;
+    const cols = Math.ceil((2 * diagonal) / stepX) + 4;
+    const rows = Math.ceil((2 * diagonal) / stepY) + 4;
 
     ctx.fillStyle = color1;
 
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        const x = -halfW + col * unitW;
-        const y = -halfH + row * unitH;
-
-        // Alternate direction: even rows shift right, odd rows shift left
-        const isEvenRow = row % 2 === 0;
-        const offset = isEvenRow ? 0 : unitW / 2;
+        const baseX = -diagonal + col * stepX;
+        const baseY = -diagonal + row * stepY;
+        // Alternate brick angle based on column parity
+        // Even columns: brick at +45°, odd columns: brick at -45°
+        // Offset odd rows by half a step for interlocking
+        const yOff = col % 2 === 0 ? 0 : stepY * 0.5;
+        const brickAngle = col % 2 === 0 ? Math.PI / 4 : -Math.PI / 4;
 
         ctx.save();
-        ctx.translate(x + offset, y);
-
-        // Draw a small rectangle block; alternate rotation per cell
-        const isFlipped = (row + col) % 2 === 0;
-        if (isFlipped) {
-          // Horizontal block
-          ctx.fillRect(0, 0, blockWidth, blockHeight);
-        } else {
-          // Vertical block (rotated 90°)
-          ctx.fillRect(0, 0, blockHeight, blockWidth);
-        }
-
+        ctx.translate(baseX, baseY + yOff);
+        ctx.rotate(brickAngle);
+        ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
         ctx.restore();
       }
     }

@@ -209,18 +209,31 @@ function renderTropicalScatter(
 
   ctx.strokeStyle = color2;
   ctx.lineWidth = 0.5;
-  const unitSize = size + gap;
+  const unitSize = size * 1.8 + gap;
   const cols = Math.ceil((2 * diagonal) / unitSize) + 4;
   const rows = Math.ceil((2 * diagonal) / unitSize) + 4;
 
-  // Deterministic scatter using simple hash
+  // Jittered grid for even spacing without clumps
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      const seed = (row * 127 + col * 311) & 0xffff;
-      const angle = (seed / 0xffff) * Math.PI * 2;
-      const leafScale = 0.7 + (seed % 100) / 200;
-      const x = -diagonal + col * unitSize + ((seed % 7) - 3) * 2;
-      const y = -diagonal + row * unitSize + ((seed % 11) - 5) * 2;
+      const lh = (v: number) => { let x = v; x = Math.imul(x ^ (x >>> 13), 1274126177); x = x ^ (x >>> 16); return ((x & 0x7fffffff) >>> 0) / 0x7fffffff; };
+      const h1 = lh((row | 0) * 374761393 + (col | 0) * 668265263 + 1);
+      const h2 = lh((row | 0) * 374761393 + (col | 0) * 668265263 + 2654435761);
+      const h3 = lh((row | 0) * 374761393 + (col | 0) * 668265263 + 1274126177);
+      const h4 = lh((row | 0) * 374761393 + (col | 0) * 668265263 + 879190747);
+      const h5 = lh((row | 0) * 374761393 + (col | 0) * 668265263 + 456789013);
+
+      // Skip ~12% of cells for organic gaps
+      if (h5 < 0.12) continue;
+
+      // Full 360° rotation for varied leaf directions
+      const angle = h1 * Math.PI * 2;
+      const leafScale = 0.5 + h2 * 0.7;
+      // Jitter position within cell (up to 80% of unit size)
+      const jitterX = (h3 - 0.5) * unitSize * 0.8;
+      const jitterY = (h4 - 0.5) * unitSize * 0.8;
+      const x = -diagonal + col * unitSize + unitSize / 2 + jitterX;
+      const y = -diagonal + row * unitSize + unitSize / 2 + jitterY;
       ctx.fillStyle = color1;
       drawLeaf(ctx, x, y, size * leafScale, angle);
     }
@@ -242,18 +255,22 @@ function renderVineTrail(
   ctx.lineWidth = 1.5;
   const rowH = size * 2 + gap;
   const rows = Math.ceil((2 * diagonal) / rowH) + 4;
+  const waveFreq = 1 / (size * 0.5);
+  const waveAmp = size * 0.4;
 
   for (let row = 0; row < rows; row++) {
     const baseY = -diagonal + row * rowH;
     // Wavy vine line
+    ctx.strokeStyle = color1;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (let x = -diagonal; x < diagonal; x += 2) {
-      const y = baseY + Math.sin(x / (size * 0.5)) * (size * 0.4);
+      const y = baseY + Math.sin(x * waveFreq) * waveAmp;
       if (x === -diagonal) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    // Leaves along the vine
+    // Leaves along the vine with varied angles
     ctx.fillStyle = color1;
     ctx.strokeStyle = color2;
     ctx.lineWidth = 0.5;
@@ -261,12 +278,18 @@ function renderVineTrail(
     const leafCount = Math.ceil((diagonal * 2) / leafSpacing);
     for (let i = 0; i < leafCount; i++) {
       const x = -diagonal + i * leafSpacing;
-      const y = baseY + Math.sin(x / (size * 0.5)) * (size * 0.4);
+      const y = baseY + Math.sin(x * waveFreq) * waveAmp;
+      // Derive leaf angle from vine tangent + alternating side offset
+      const tangent = Math.atan2(Math.cos(x * waveFreq) * waveAmp * waveFreq, 1);
       const side = i % 2 === 0 ? 1 : -1;
-      drawLeaf(ctx, x, y, size * 0.6, side * Math.PI / 3);
+      // Vary angle: perpendicular to vine ± hash-based variation
+      let hv = (row | 0) * 374761393 + (i | 0) * 668265263 + 2654435761;
+      hv = Math.imul(hv ^ (hv >>> 13), 1274126177);
+      hv = hv ^ (hv >>> 16);
+      const variation = ((((hv & 0x7fffffff) >>> 0) / 0x7fffffff) - 0.5) * 0.6;
+      const angle = tangent + side * (Math.PI / 2.5) + variation;
+      drawLeaf(ctx, x, y, size * 0.6, angle);
     }
-    ctx.strokeStyle = color1;
-    ctx.lineWidth = 1.5;
   }
 }
 

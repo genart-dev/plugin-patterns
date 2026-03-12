@@ -99,7 +99,7 @@ const TERRAZZO_PROPERTIES: LayerPropertySchema[] = [
 const VALID_STYLES = ["classic", "bold", "blob"];
 
 // ---------------------------------------------------------------------------
-// Seeded PRNG
+// Seeded PRNG + jittered grid
 // ---------------------------------------------------------------------------
 
 function seededRandom(seed: number): () => number {
@@ -108,6 +108,38 @@ function seededRandom(seed: number): () => number {
     s = (s * 16807 + 0) % 2147483647;
     return (s - 1) / 2147483646;
   };
+}
+
+function cellHash(row: number, col: number, channel: number): number {
+  let h = (row | 0) * 374761393 + (col | 0) * 668265263 + (channel | 0) * 2654435761;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h = h ^ (h >>> 16);
+  return ((h & 0x7fffffff) >>> 0) / 0x7fffffff;
+}
+
+interface JitteredPoint { x: number; y: number; rng1: number; rng2: number; rng3: number; }
+
+function jitteredGrid(diagonal: number, density: number, seed: number, minSpacing: number = 30): JitteredPoint[] {
+  const area = (diagonal * 2) * (diagonal * 2);
+  const count = Math.max(1, Math.floor((area / 10000) * density));
+  const cellSize = Math.max(minSpacing, Math.sqrt(area / count));
+  const cols = Math.ceil((diagonal * 2) / cellSize) + 2;
+  const rows = Math.ceil((diagonal * 2) / cellSize) + 2;
+  const points: JitteredPoint[] = [];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const skipHash = cellHash(row + seed, col, 5);
+      if (skipHash < 0.15) continue;
+      points.push({
+        x: -diagonal + (col + cellHash(row + seed, col, 0)) * cellSize,
+        y: -diagonal + (row + cellHash(row + seed, col, 1)) * cellSize,
+        rng1: cellHash(row + seed, col, 2),
+        rng2: cellHash(row + seed, col, 3),
+        rng3: cellHash(row + seed, col, 4),
+      });
+    }
+  }
+  return points;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,30 +158,26 @@ function renderClassic(
   ctx.fillStyle = "#f0ece3";
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  const area = (diagonal * 2) * (diagonal * 2);
-  const count = Math.floor((area / 10000) * density);
-  const rng = seededRandom(42);
+  const points = jitteredGrid(diagonal, density, 42, size * 2);
   const colors = [color1, color2, color3];
+  const rng = seededRandom(42); // for chip shape variation
 
-  for (let i = 0; i < count; i++) {
-    const x = -diagonal + rng() * diagonal * 2;
-    const y = -diagonal + rng() * diagonal * 2;
-    const angle = rng() * Math.PI * 2;
-    const w = size * (0.3 + rng() * 0.7);
-    const h = size * (0.15 + rng() * 0.3);
-    ctx.fillStyle = colors[Math.floor(rng() * colors.length)]!;
+  for (const pt of points) {
+    const angle = pt.rng1 * Math.PI * 2;
+    const w = size * (0.3 + pt.rng2 * 0.7);
+    const h = size * (0.15 + pt.rng3 * 0.3);
+    ctx.fillStyle = colors[Math.floor(pt.rng1 * colors.length)]!;
 
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(pt.x, pt.y);
     ctx.rotate(angle);
-    // Irregular polygon chip
-    const sides = 3 + Math.floor(rng() * 4);
+    const sides = 3 + Math.floor(pt.rng2 * 4);
     ctx.beginPath();
     for (let s = 0; s < sides; s++) {
       const a = (s / sides) * Math.PI * 2;
-      const r = (s % 2 === 0 ? w : h) * (0.7 + rng() * 0.3);
-      const px = Math.cos(a) * r;
-      const py = Math.sin(a) * r;
+      const rv = (s % 2 === 0 ? w : h) * (0.7 + rng() * 0.3);
+      const px = Math.cos(a) * rv;
+      const py = Math.sin(a) * rv;
       if (s === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     }
@@ -171,29 +199,26 @@ function renderBold(
   ctx.fillStyle = "#f5f5f5";
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  const area = (diagonal * 2) * (diagonal * 2);
-  const count = Math.floor((area / 10000) * density * 0.6);
-  const rng = seededRandom(137);
+  const points = jitteredGrid(diagonal, density * 0.6, 137, size * 2.5);
   const colors = [color1, color2, color3];
+  const rng = seededRandom(137);
 
-  for (let i = 0; i < count; i++) {
-    const x = -diagonal + rng() * diagonal * 2;
-    const y = -diagonal + rng() * diagonal * 2;
-    const angle = rng() * Math.PI * 2;
-    const w = size * (0.8 + rng() * 1.2);
-    const h = size * (0.4 + rng() * 0.6);
-    ctx.fillStyle = colors[Math.floor(rng() * colors.length)]!;
+  for (const pt of points) {
+    const angle = pt.rng1 * Math.PI * 2;
+    const w = size * (0.8 + pt.rng2 * 1.2);
+    const h = size * (0.4 + pt.rng3 * 0.6);
+    ctx.fillStyle = colors[Math.floor(pt.rng1 * colors.length)]!;
 
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(pt.x, pt.y);
     ctx.rotate(angle);
-    const sides = 4 + Math.floor(rng() * 3);
+    const sides = 4 + Math.floor(pt.rng2 * 3);
     ctx.beginPath();
     for (let s = 0; s < sides; s++) {
       const a = (s / sides) * Math.PI * 2;
-      const r = (s % 2 === 0 ? w : h) * (0.6 + rng() * 0.4);
-      const px = Math.cos(a) * r;
-      const py = Math.sin(a) * r;
+      const rv = (s % 2 === 0 ? w : h) * (0.6 + rng() * 0.4);
+      const px = Math.cos(a) * rv;
+      const py = Math.sin(a) * rv;
       if (s === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     }
@@ -215,18 +240,14 @@ function renderBlob(
   ctx.fillStyle = color2;
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  const area = (diagonal * 2) * (diagonal * 2);
-  const count = Math.floor((area / 10000) * density);
-  const rng = seededRandom(256);
+  const points = jitteredGrid(diagonal, density, 256, size * 2);
 
-  for (let i = 0; i < count; i++) {
-    const x = -diagonal + rng() * diagonal * 2;
-    const y = -diagonal + rng() * diagonal * 2;
-    const r = size * (0.3 + rng() * 0.7);
+  for (const pt of points) {
+    const r = size * (0.3 + pt.rng1 * 0.7);
     ctx.fillStyle = color1;
-    ctx.globalAlpha = 0.3 + rng() * 0.5;
+    ctx.globalAlpha = 0.3 + pt.rng2 * 0.5;
     ctx.beginPath();
-    ctx.ellipse(x, y, r, r * (0.5 + rng() * 0.5), rng() * Math.PI, 0, Math.PI * 2);
+    ctx.ellipse(pt.x, pt.y, r, r * (0.5 + pt.rng3 * 0.5), pt.rng1 * Math.PI, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }

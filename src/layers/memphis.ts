@@ -100,7 +100,7 @@ const MEMPHIS_PROPERTIES: LayerPropertySchema[] = [
 const VALID_STYLES = ["classic", "confetti", "geometric", "squiggle"];
 
 // ---------------------------------------------------------------------------
-// Seeded PRNG
+// Seeded PRNG + jittered grid
 // ---------------------------------------------------------------------------
 
 function seededRandom(seed: number): () => number {
@@ -109,6 +109,52 @@ function seededRandom(seed: number): () => number {
     s = (s * 16807 + 0) % 2147483647;
     return (s - 1) / 2147483646;
   };
+}
+
+/** Hash-based jitter for grid cell — returns 0..1 */
+function cellHash(row: number, col: number, channel: number): number {
+  let h = (row | 0) * 374761393 + (col | 0) * 668265263 + (channel | 0) * 2654435761;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h = h ^ (h >>> 16);
+  return ((h & 0x7fffffff) >>> 0) / 0x7fffffff;
+}
+
+interface JitteredPoint { x: number; y: number; rng1: number; rng2: number; rng3: number; }
+
+/** Generate evenly-spaced jittered points across an area.
+ *  minSpacing sets a floor on cell size (prevents packed grids for large shapes). */
+function jitteredGrid(
+  diagonal: number,
+  density: number,
+  seed: number,
+  minSpacing: number = 30,
+): JitteredPoint[] {
+  const area = (diagonal * 2) * (diagonal * 2);
+  const count = Math.max(1, Math.floor((area / 10000) * density));
+  // Cell size: at least minSpacing to prevent over-packing
+  const cellSize = Math.max(minSpacing, Math.sqrt(area / count));
+  const cols = Math.ceil((diagonal * 2) / cellSize) + 2;
+  const rows = Math.ceil((diagonal * 2) / cellSize) + 2;
+  const points: JitteredPoint[] = [];
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      // Random skip ~15% of cells for organic feel
+      const skipHash = cellHash(row + seed, col, 5);
+      if (skipHash < 0.15) continue;
+
+      const jx = cellHash(row + seed, col, 0);
+      const jy = cellHash(row + seed, col, 1);
+      points.push({
+        x: -diagonal + (col + jx) * cellSize,
+        y: -diagonal + (row + jy) * cellSize,
+        rng1: cellHash(row + seed, col, 2),
+        rng2: cellHash(row + seed, col, 3),
+        rng3: cellHash(row + seed, col, 4),
+      });
+    }
+  }
+  return points;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,23 +173,20 @@ function renderClassic(
   ctx.fillStyle = "#f5f5f5";
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  const area = (diagonal * 2) * (diagonal * 2);
-  const count = Math.floor((area / 10000) * density);
-  const rng = seededRandom(42);
+  const points = jitteredGrid(diagonal, density, 42, size * 2);
   const colors = [color1, color2, color3];
 
-  for (let i = 0; i < count; i++) {
-    const x = -diagonal + rng() * diagonal * 2;
-    const y = -diagonal + rng() * diagonal * 2;
-    const angle = rng() * Math.PI * 2;
-    const s = size * (0.5 + rng() * 0.8);
-    const shape = Math.floor(rng() * 4);
-    ctx.fillStyle = colors[Math.floor(rng() * colors.length)]!;
-    ctx.strokeStyle = colors[Math.floor(rng() * colors.length)]!;
+  for (const pt of points) {
+    const angle = pt.rng1 * Math.PI * 2;
+    const s = size * (0.5 + pt.rng2 * 0.8);
+    const shape = Math.floor(pt.rng3 * 4);
+    const ci = Math.floor(pt.rng1 * 3 + pt.rng2) % colors.length;
+    ctx.fillStyle = colors[ci]!;
+    ctx.strokeStyle = colors[(ci + 1) % colors.length]!;
     ctx.lineWidth = 2;
 
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(pt.x, pt.y);
     ctx.rotate(angle);
 
     switch (shape) {
@@ -191,20 +234,16 @@ function renderConfetti(
   ctx.fillStyle = "#fafafa";
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  const area = (diagonal * 2) * (diagonal * 2);
-  const count = Math.floor((area / 10000) * density);
-  const rng = seededRandom(137);
+  const points = jitteredGrid(diagonal, density, 137, size * 2);
   const colors = [color1, color2, color3];
 
-  for (let i = 0; i < count; i++) {
-    const x = -diagonal + rng() * diagonal * 2;
-    const y = -diagonal + rng() * diagonal * 2;
-    const angle = rng() * Math.PI * 2;
-    const w = size * (0.2 + rng() * 0.3);
-    const h = size * (0.6 + rng() * 0.4);
-    ctx.fillStyle = colors[Math.floor(rng() * colors.length)]!;
+  for (const pt of points) {
+    const angle = pt.rng1 * Math.PI * 2;
+    const w = size * (0.2 + pt.rng2 * 0.3);
+    const h = size * (0.6 + pt.rng3 * 0.4);
+    ctx.fillStyle = colors[Math.floor(pt.rng1 * colors.length)]!;
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(pt.x, pt.y);
     ctx.rotate(angle);
     ctx.fillRect(-w / 2, -h / 2, w, h);
     ctx.restore();
@@ -223,21 +262,17 @@ function renderGeometric(
   ctx.fillStyle = color2;
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  const area = (diagonal * 2) * (diagonal * 2);
-  const count = Math.floor((area / 10000) * density);
-  const rng = seededRandom(256);
+  const points = jitteredGrid(diagonal, density, 256, size * 2);
 
-  for (let i = 0; i < count; i++) {
-    const x = -diagonal + rng() * diagonal * 2;
-    const y = -diagonal + rng() * diagonal * 2;
-    const angle = rng() * Math.PI * 2;
-    const s = size * (0.4 + rng() * 0.6);
-    const shape = Math.floor(rng() * 3);
+  for (const pt of points) {
+    const angle = pt.rng1 * Math.PI * 2;
+    const s = size * (0.4 + pt.rng2 * 0.6);
+    const shape = Math.floor(pt.rng3 * 3);
 
     ctx.strokeStyle = color1;
     ctx.lineWidth = 1.5;
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(pt.x, pt.y);
     ctx.rotate(angle);
 
     switch (shape) {
@@ -274,22 +309,18 @@ function renderSquiggle(
   ctx.fillStyle = color2;
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  const area = (diagonal * 2) * (diagonal * 2);
-  const count = Math.floor((area / 10000) * density);
-  const rng = seededRandom(311);
+  const points = jitteredGrid(diagonal, density, 311, size * 2);
 
   ctx.strokeStyle = color1;
   ctx.lineWidth = 2;
   ctx.lineCap = "round";
 
-  for (let i = 0; i < count; i++) {
-    const x = -diagonal + rng() * diagonal * 2;
-    const y = -diagonal + rng() * diagonal * 2;
-    const angle = rng() * Math.PI * 2;
-    const len = size * (0.8 + rng() * 0.5);
+  for (const pt of points) {
+    const angle = pt.rng1 * Math.PI * 2;
+    const len = size * (0.8 + pt.rng2 * 0.5);
 
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(pt.x, pt.y);
     ctx.rotate(angle);
     ctx.beginPath();
     ctx.moveTo(-len / 2, 0);

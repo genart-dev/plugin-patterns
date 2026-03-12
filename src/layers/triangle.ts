@@ -225,31 +225,39 @@ function renderKaleidoscope(
   color1: string,
   color2: string,
 ): void {
-  const unitSize = size + gap;
-  const count = Math.ceil((2 * diagonal) / unitSize) + 4;
+  // Hexagonal rosettes: 6 equilateral triangles meeting at center,
+  // tiled on a hex grid so rosettes tessellate seamlessly.
+  const s = size - gap;
+  const r = s; // radius from center to hex vertex = full size
+  const unitW = r * Math.sqrt(3) + gap;
+  const unitH = r * 1.5 + gap;
+  const cols = Math.ceil((2 * diagonal) / unitW) + 4;
+  const rows = Math.ceil((2 * diagonal) / unitH) + 4;
 
   ctx.fillStyle = color2;
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  for (let row = 0; row < count; row++) {
-    for (let col = 0; col < count; col++) {
-      const cx = -diagonal + col * unitSize;
-      const cy = -diagonal + row * unitSize;
-      const s = size - gap;
+  for (let row = 0; row < rows; row++) {
+    const xOff = row % 2 === 0 ? 0 : unitW / 2;
+    for (let col = 0; col < cols; col++) {
+      const cx = -diagonal + col * unitW + xOff;
+      const cy = -diagonal + row * unitH;
 
-      // 6 triangles radiating from center
+      // 6 equilateral triangles radiating from center, filling a hexagon
       for (let i = 0; i < 6; i++) {
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate((Math.PI / 3) * i);
+        const a1 = (Math.PI / 3) * i - Math.PI / 6;
+        const a2 = (Math.PI / 3) * (i + 1) - Math.PI / 6;
         ctx.fillStyle = i % 2 === 0 ? color1 : color2;
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(s / 2, -s * 0.43);
-        ctx.lineTo(-s / 2, -s * 0.43);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + r * Math.cos(a1), cy + r * Math.sin(a1));
+        ctx.lineTo(cx + r * Math.cos(a2), cy + r * Math.sin(a2));
         ctx.closePath();
         ctx.fill();
-        ctx.restore();
+        // Outline for definition
+        ctx.strokeStyle = color1;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
       }
     }
   }

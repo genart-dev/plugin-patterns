@@ -114,10 +114,11 @@ function drawFlower(
   size: number,
   petals: number,
   color1: string,
+  centerColor: string,
   centerRadius: number,
 ): void {
-  const petalLen = size * 0.45;
-  const petalW = size * 0.2;
+  const petalLen = size * 0.42;
+  const petalW = size * 0.15;
   ctx.fillStyle = color1;
   for (let i = 0; i < petals; i++) {
     const angle = (i / petals) * Math.PI * 2;
@@ -125,11 +126,13 @@ function drawFlower(
     ctx.translate(cx, cy);
     ctx.rotate(angle);
     ctx.beginPath();
-    ctx.ellipse(0, -petalLen * 0.6, petalW, petalLen, 0, 0, Math.PI * 2);
+    // Petal: ellipse centered at distance from center
+    ctx.ellipse(0, -petalLen, petalW, petalLen * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
-  // Center
+  // Center disk (contrasting)
+  ctx.fillStyle = centerColor;
   ctx.beginPath();
   ctx.arc(cx, cy, centerRadius, 0, Math.PI * 2);
   ctx.fill();
@@ -160,7 +163,7 @@ function renderDaisy(
     for (let col = 0; col < cols; col++) {
       const x = -diagonal + col * unitSize + xOff;
       const y = -diagonal + row * unitSize;
-      drawFlower(ctx, x, y, size, petals, color1, size * 0.12);
+      drawFlower(ctx, x, y, size, petals, color1, color2, size * 0.12);
     }
   }
 }
@@ -187,9 +190,9 @@ function renderRosette(
       const y = -diagonal + row * unitSize;
       // Double layer rosette
       ctx.globalAlpha = 0.5;
-      drawFlower(ctx, x, y, size, petals, color1, size * 0.1);
+      drawFlower(ctx, x, y, size, petals, color1, color2, size * 0.1);
       ctx.globalAlpha = 1;
-      drawFlower(ctx, x, y, size * 0.6, petals, color1, size * 0.08);
+      drawFlower(ctx, x, y, size * 0.6, petals, color1, color2, size * 0.08);
     }
   }
 }

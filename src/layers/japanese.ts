@@ -145,22 +145,30 @@ function renderSeigaiha(
   ctx.fillStyle = color2;
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
-  ctx.strokeStyle = color1;
-  ctx.lineWidth = lw;
   const r = size / 2;
   const unitW = size;
   const unitH = r * 0.75;
   const cols = Math.ceil((2 * diagonal) / unitW) + 4;
   const rows = Math.ceil((2 * diagonal) / unitH) + 4;
+  const rings = 4;
 
-  for (let row = 0; row < rows; row++) {
+  // Draw bottom-to-top so upper rows properly overlap lower ones
+  for (let row = rows - 1; row >= 0; row--) {
     const xOff = row % 2 === 0 ? 0 : unitW / 2;
     for (let col = 0; col < cols; col++) {
       const cx = -diagonal + col * unitW + xOff;
       const cy = -diagonal + row * unitH;
-      // Concentric semicircle arcs (seigaiha wave pattern)
-      for (let ring = 1; ring <= 3; ring++) {
-        const rr = r * (ring / 3);
+      // Filled background semicircle to prevent bleed-through
+      ctx.fillStyle = color2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, Math.PI, 0, false);
+      ctx.closePath();
+      ctx.fill();
+      // Concentric semicircle arcs
+      ctx.strokeStyle = color1;
+      ctx.lineWidth = lw;
+      for (let ring = 1; ring <= rings; ring++) {
+        const rr = r * (ring / rings);
         ctx.beginPath();
         ctx.arc(cx, cy, rr, Math.PI, 0, false);
         ctx.stroke();
