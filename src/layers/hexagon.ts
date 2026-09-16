@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -304,6 +304,8 @@ const HEXAGON_RENDERERS: Record<string, HexRenderer> = {
 
 export const hexagonLayerType: LayerTypeDefinition = {
   typeId: "patterns:hexagon",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Hexagon Pattern",
   icon: "hexagon",
   category: "draw",
@@ -328,11 +330,16 @@ export const hexagonLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
     const style = (properties.style as string) ?? "honeycomb";
-    const size = (properties.size as number) ?? 24;
+    const size = ((properties.size as number) ?? 24) * dsc;
     const color1 = (properties.color1 as string) ?? "#f39c12";
     const color2 = (properties.color2 as string) ?? "#fef9e7";
-    const gap = (properties.gap as number) ?? 2;
+    const gap = ((properties.gap as number) ?? 2) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
 
@@ -340,6 +347,7 @@ export const hexagonLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const renderer = HEXAGON_RENDERERS[style] ?? HEXAGON_RENDERERS.honeycomb!;
 

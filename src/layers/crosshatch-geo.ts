@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -130,6 +130,8 @@ function drawParallelLines(
 
 export const crosshatchGeoLayerType: LayerTypeDefinition = {
   typeId: "patterns:crosshatch-geo",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Crosshatch (Geometric)",
   icon: "hash",
   category: "draw",
@@ -154,10 +156,15 @@ export const crosshatchGeoLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
     const angle1 = (properties.angle1 as number) ?? 45;
     const angle2 = (properties.angle2 as number) ?? 135;
-    const spacing = (properties.spacing as number) ?? 10;
-    const lineWidth = (properties.lineWidth as number) ?? 1;
+    const spacing = ((properties.spacing as number) ?? 10) * dsc;
+    const lineWidth = ((properties.lineWidth as number) ?? 1) * dsc;
     const color = (properties.color as string) ?? "#000000";
     const backgroundColor = (properties.backgroundColor as string) ?? "#ffffff";
     const layerOpacity = (properties.opacity as number) ?? 1;
@@ -166,6 +173,7 @@ export const crosshatchGeoLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     ctx.save();
     ctx.globalAlpha = layerOpacity;

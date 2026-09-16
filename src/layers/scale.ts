@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 const SCALE_PROPERTIES: LayerPropertySchema[] = [
   {
@@ -140,6 +140,8 @@ const SCALE_RENDERERS: Record<string, ScaleRenderer> = {
 
 export const scaleLayerType: LayerTypeDefinition = {
   typeId: "patterns:scale",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Scale Pattern",
   icon: "layers",
   category: "draw",
@@ -156,15 +158,21 @@ export const scaleLayerType: LayerTypeDefinition = {
     const w = Math.ceil(bounds.width);
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
+
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
     const style = (properties.style as string) ?? "fishscale";
-    const size = (properties.size as number) ?? 24;
+    const size = ((properties.size as number) ?? 24) * dsc;
     const color1 = (properties.color1 as string) ?? "#2c3e50";
     const color2 = (properties.color2 as string) ?? "#ecf0f1";
-    const lineWidth = (properties.lineWidth as number) ?? 1;
+    const lineWidth = ((properties.lineWidth as number) ?? 1) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
     let region: PatternRegion = { type: "bounds" };
     try { region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion; } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
     const renderer = SCALE_RENDERERS[style] ?? SCALE_RENDERERS.fishscale!;
     ctx.save();
     ctx.globalAlpha = layerOpacity;

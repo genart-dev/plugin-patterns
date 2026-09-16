@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 const OCTAGON_PROPERTIES: LayerPropertySchema[] = [
   {
@@ -92,6 +92,8 @@ const OCTAGON_RENDERERS: Record<string, OctRenderer> = {
 
 export const octagonLayerType: LayerTypeDefinition = {
   typeId: "patterns:octagon",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Octagon Pattern",
   icon: "octagon",
   category: "draw",
@@ -108,16 +110,22 @@ export const octagonLayerType: LayerTypeDefinition = {
     const w = Math.ceil(bounds.width);
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
+
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
     const style = (properties.style as string) ?? "octagon-square";
-    const size = (properties.size as number) ?? 30;
+    const size = ((properties.size as number) ?? 30) * dsc;
     const color1 = (properties.color1 as string) ?? "#2c3e50";
     const color2 = (properties.color2 as string) ?? "#bdc3c7";
-    const gap = (properties.gap as number) ?? 2;
-    const lineWidth = (properties.lineWidth as number) ?? 1.5;
+    const gap = ((properties.gap as number) ?? 2) * dsc;
+    const lineWidth = ((properties.lineWidth as number) ?? 1.5) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
     let region: PatternRegion = { type: "bounds" };
     try { region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion; } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
     const renderer = OCTAGON_RENDERERS[style] ?? OCTAGON_RENDERERS["octagon-square"]!;
     ctx.save();
     ctx.globalAlpha = layerOpacity;

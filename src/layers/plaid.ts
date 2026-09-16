@@ -7,7 +7,15 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
+
+/**
+ * Device pixels per layout unit for the render in progress (ADR 111). The tile
+ * helpers below draw hairlines at a fixed width, and they are called
+ * synchronously from render(), which sets this first.
+ */
+let _dsc = 1;
+
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -203,7 +211,7 @@ function renderWindowpane(
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
   ctx.strokeStyle = color1;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.5 * _dsc;
   const count = Math.ceil((diagonal * 2) / size) + 2;
   for (let i = 0; i < count; i++) {
     const pos = -diagonal + i * size;
@@ -240,6 +248,8 @@ const PLAID_RENDERERS: Record<string, PlaidRenderer> = {
 
 export const plaidLayerType: LayerTypeDefinition = {
   typeId: "patterns:plaid",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Plaid Pattern",
   icon: "grid",
   category: "draw",
@@ -264,8 +274,14 @@ export const plaidLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+    _dsc = dsc;
+
     const style = (properties.style as string) ?? "tartan";
-    const size = (properties.size as number) ?? 40;
+    const size = ((properties.size as number) ?? 40) * dsc;
     const color1 = (properties.color1 as string) ?? "#c0392b";
     const color2 = (properties.color2 as string) ?? "#1a5276";
     const color3 = (properties.color3 as string) ?? "#27ae60";
@@ -276,6 +292,7 @@ export const plaidLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const renderer = PLAID_RENDERERS[style] ?? PLAID_RENDERERS.tartan!;
 

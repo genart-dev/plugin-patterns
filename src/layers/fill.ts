@@ -8,7 +8,7 @@ import type {
 } from "@genart-dev/core";
 import type { PatternRegion, PatternStrategy, ShadingFunction, ShadingAffect, GeneratedPath } from "../core/types.js";
 import { generatePatternPaths } from "../core/generators.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 import { renderPatternPaths } from "../core/renderer.js";
 
 // ---------------------------------------------------------------------------
@@ -114,6 +114,8 @@ function makeCacheKey(properties: LayerProperties, bounds: LayerBounds): string 
 
 export const fillLayerType: LayerTypeDefinition = {
   typeId: "patterns:fill",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Pattern Fill",
   icon: "bucket",
   category: "draw",
@@ -138,11 +140,17 @@ export const fillLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
     // Parse properties
     let region: PatternRegion = { type: "bounds" };
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     let strategy: PatternStrategy = { type: "hatch", angle: 45, spacing: 8 };
     try {
@@ -160,7 +168,7 @@ export const fillLayerType: LayerTypeDefinition = {
     } catch { /* use density */ }
 
     const color = (properties.color as string) ?? "#000000";
-    const lineWidth = (properties.lineWidth as number) ?? 2;
+    const lineWidth = ((properties.lineWidth as number) ?? 2) * dsc;
     const seed = (properties.seed as number) ?? 42;
     const layerOpacity = (properties.opacity as number) ?? 1;
 

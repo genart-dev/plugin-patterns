@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -125,6 +125,8 @@ const WAVEFORMS: Record<string, WaveformFn> = {
 
 export const waveLayerType: LayerTypeDefinition = {
   typeId: "patterns:wave",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Wave Pattern",
   icon: "waves",
   category: "draw",
@@ -149,19 +151,25 @@ export const waveLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
-    const amplitude = (properties.amplitude as number) ?? 15;
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
+    const amplitude = ((properties.amplitude as number) ?? 15) * dsc;
     const frequency = (properties.frequency as number) ?? 3;
     const phase = (properties.phase as number) ?? 0;
-    const lineWidth = (properties.lineWidth as number) ?? 2;
+    const lineWidth = ((properties.lineWidth as number) ?? 2) * dsc;
     const waveformName = (properties.waveform as string) ?? "sine";
     const color = (properties.color as string) ?? "#000000";
-    const spacing = (properties.spacing as number) ?? 30;
+    const spacing = ((properties.spacing as number) ?? 30) * dsc;
     const layerOpacity = (properties.opacity as number) ?? 1;
 
     let region: PatternRegion = { type: "bounds" };
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const waveformFn = WAVEFORMS[waveformName] ?? WAVEFORMS.sine!;
 

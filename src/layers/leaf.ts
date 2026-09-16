@@ -7,7 +7,15 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
+
+/**
+ * Device pixels per layout unit for the render in progress (ADR 111). The tile
+ * helpers below draw hairlines at a fixed width, and they are called
+ * synchronously from render(), which sets this first.
+ */
+let _dsc = 1;
+
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -139,7 +147,7 @@ function renderSimpleLeaf(
 
   ctx.fillStyle = color1;
   ctx.strokeStyle = color2;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1 * _dsc;
   const unitSize = size + gap;
   const cols = Math.ceil((2 * diagonal) / unitSize) + 4;
   const rows = Math.ceil((2 * diagonal) / unitSize) + 4;
@@ -168,7 +176,7 @@ function renderFernRow(
 
   ctx.fillStyle = color1;
   ctx.strokeStyle = color2;
-  ctx.lineWidth = 0.5;
+  ctx.lineWidth = 0.5 * _dsc;
   const leafSize = size * 0.5;
   const rowH = size + gap;
   const rows = Math.ceil((2 * diagonal) / rowH) + 4;
@@ -179,13 +187,13 @@ function renderFernRow(
     const dir = row % 2 === 0 ? 1 : -1;
     // Stem line
     ctx.strokeStyle = color1;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.5 * _dsc;
     ctx.beginPath();
     ctx.moveTo(-diagonal, y);
     ctx.lineTo(diagonal, y);
     ctx.stroke();
     ctx.strokeStyle = color2;
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 0.5 * _dsc;
     // Leaves along stem
     const leafCount = Math.ceil((diagonal * 2) / leafSpacing) + 2;
     for (let i = 0; i < leafCount; i++) {
@@ -208,7 +216,7 @@ function renderTropicalScatter(
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
   ctx.strokeStyle = color2;
-  ctx.lineWidth = 0.5;
+  ctx.lineWidth = 0.5 * _dsc;
   const unitSize = size * 1.8 + gap;
   const cols = Math.ceil((2 * diagonal) / unitSize) + 4;
   const rows = Math.ceil((2 * diagonal) / unitSize) + 4;
@@ -252,7 +260,7 @@ function renderVineTrail(
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
   ctx.strokeStyle = color1;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.5 * _dsc;
   const rowH = size * 2 + gap;
   const rows = Math.ceil((2 * diagonal) / rowH) + 4;
   const waveFreq = 1 / (size * 0.5);
@@ -262,7 +270,7 @@ function renderVineTrail(
     const baseY = -diagonal + row * rowH;
     // Wavy vine line
     ctx.strokeStyle = color1;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.5 * _dsc;
     ctx.beginPath();
     for (let x = -diagonal; x < diagonal; x += 2) {
       const y = baseY + Math.sin(x * waveFreq) * waveAmp;
@@ -273,7 +281,7 @@ function renderVineTrail(
     // Leaves along the vine with varied angles
     ctx.fillStyle = color1;
     ctx.strokeStyle = color2;
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 0.5 * _dsc;
     const leafSpacing = size * 0.8 + gap;
     const leafCount = Math.ceil((diagonal * 2) / leafSpacing);
     for (let i = 0; i < leafCount; i++) {
@@ -315,6 +323,8 @@ const LEAF_RENDERERS: Record<string, LeafRenderer> = {
 
 export const leafLayerType: LayerTypeDefinition = {
   typeId: "patterns:leaf",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Leaf Pattern",
   icon: "leaf",
   category: "draw",
@@ -339,11 +349,17 @@ export const leafLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+    _dsc = dsc;
+
     const style = (properties.style as string) ?? "simple-leaf";
-    const size = (properties.size as number) ?? 28;
+    const size = ((properties.size as number) ?? 28) * dsc;
     const color1 = (properties.color1 as string) ?? "#27ae60";
     const color2 = (properties.color2 as string) ?? "#eafaf1";
-    const gap = (properties.gap as number) ?? 8;
+    const gap = ((properties.gap as number) ?? 8) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
 
@@ -351,6 +367,7 @@ export const leafLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const renderer = LEAF_RENDERERS[style] ?? LEAF_RENDERERS["simple-leaf"]!;
 

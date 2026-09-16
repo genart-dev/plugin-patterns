@@ -12,6 +12,40 @@ export interface RegionBounds {
   height: number;
 }
 
+/**
+ * A region's coordinates come from a property in layout units, while the bounds
+ * handed to a device-resolution layer are already in device pixels (ADR 111).
+ * This puts the two in the same space. A "bounds" region needs nothing.
+ */
+export function scaleRegion(region: PatternRegion, scale: number): PatternRegion {
+  if (scale === 1) return region;
+  switch (region.type) {
+    case "bounds":
+      return region;
+    case "rect":
+      return {
+        type: "rect",
+        x: region.x * scale,
+        y: region.y * scale,
+        width: region.width * scale,
+        height: region.height * scale,
+      };
+    case "ellipse":
+      return {
+        type: "ellipse",
+        cx: region.cx * scale,
+        cy: region.cy * scale,
+        rx: region.rx * scale,
+        ry: region.ry * scale,
+      };
+    case "polygon":
+      return {
+        type: "polygon",
+        points: region.points.map((pt) => ({ x: pt.x * scale, y: pt.y * scale })),
+      };
+  }
+}
+
 /** Get the axis-aligned bounding box for a region. */
 export function regionBounds(region: PatternRegion, bounds: LayerBounds): RegionBounds {
   switch (region.type) {

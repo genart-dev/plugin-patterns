@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -80,6 +80,8 @@ const DOT_PROPERTIES: LayerPropertySchema[] = [
 
 export const dotLayerType: LayerTypeDefinition = {
   typeId: "patterns:dot",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Dot Pattern",
   icon: "circle-dot",
   category: "draw",
@@ -104,8 +106,13 @@ export const dotLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
-    const spacing = (properties.spacing as number) ?? 24;
-    const radius = (properties.radius as number) ?? 6;
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
+    const spacing = ((properties.spacing as number) ?? 24) * dsc;
+    const radius = ((properties.radius as number) ?? 6) * dsc;
     const hexOffset = (properties.offset as boolean) ?? false;
     const color = (properties.color as string) ?? "#000000";
     const backgroundColor = (properties.backgroundColor as string) ?? "#ffffff";
@@ -115,6 +122,7 @@ export const dotLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     ctx.save();
     ctx.globalAlpha = layerOpacity;

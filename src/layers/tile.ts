@@ -7,7 +7,15 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
+
+/**
+ * Device pixels per layout unit for the render in progress (ADR 111). The tile
+ * helpers below draw hairlines at a fixed width, and they are called
+ * synchronously from render(), which sets this first.
+ */
+let _dsc = 1;
+
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -307,7 +315,7 @@ function renderOgee(
   ctx.fillRect(-diagonal, -diagonal, diagonal * 2, diagonal * 2);
 
   ctx.strokeStyle = color1;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.5 * _dsc;
   const hs = size / 2;
   for (let row = 0; row < rows; row++) {
     const xOff = row % 2 === 0 ? 0 : unitW / 2;
@@ -427,6 +435,8 @@ const TILE_RENDERERS: Record<string, TileRenderer> = {
 
 export const tileLayerType: LayerTypeDefinition = {
   typeId: "patterns:tile",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Tile Pattern",
   icon: "tile",
   category: "draw",
@@ -451,11 +461,17 @@ export const tileLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+    _dsc = dsc;
+
     const tileShape = (properties.tileShape as string) ?? "brick";
-    const size = (properties.size as number) ?? 30;
+    const size = ((properties.size as number) ?? 30) * dsc;
     const color1 = (properties.color1 as string) ?? "#c0392b";
     const color2 = (properties.color2 as string) ?? "#ecf0f1";
-    const gap = (properties.gap as number) ?? 2;
+    const gap = ((properties.gap as number) ?? 2) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
 
@@ -463,6 +479,7 @@ export const tileLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const renderer = TILE_RENDERERS[tileShape] ?? TILE_RENDERERS.brick!;
 

@@ -7,7 +7,15 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
+
+/**
+ * Device pixels per layout unit for the render in progress (ADR 111). The tile
+ * helpers below draw hairlines at a fixed width, and they are called
+ * synchronously from render(), which sets this first.
+ */
+let _dsc = 1;
+
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -174,7 +182,7 @@ function renderArgyle(
 
   // Thin diagonal lines (argyle characteristic)
   ctx.strokeStyle = color3;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.5 * _dsc;
   for (let row = 0; row < rows; row++) {
     const xOff = row % 2 === 0 ? 0 : unitW / 2;
     for (let col = 0; col < cols; col++) {
@@ -299,6 +307,8 @@ const DIAMOND_RENDERERS: Record<string, DiamondRenderer> = {
 
 export const diamondLayerType: LayerTypeDefinition = {
   typeId: "patterns:diamond",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Diamond Pattern",
   icon: "diamond",
   category: "draw",
@@ -323,12 +333,18 @@ export const diamondLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+    _dsc = dsc;
+
     const style = (properties.style as string) ?? "simple";
-    const size = (properties.size as number) ?? 30;
+    const size = ((properties.size as number) ?? 30) * dsc;
     const color1 = (properties.color1 as string) ?? "#2c3e50";
     const color2 = (properties.color2 as string) ?? "#ecf0f1";
     const color3 = (properties.color3 as string) ?? "#1a5276";
-    const gap = (properties.gap as number) ?? 2;
+    const gap = ((properties.gap as number) ?? 2) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
 
@@ -336,6 +352,7 @@ export const diamondLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const renderer = DIAMOND_RENDERERS[style] ?? DIAMOND_RENDERERS.simple!;
 

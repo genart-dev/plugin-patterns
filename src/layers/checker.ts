@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -66,6 +66,8 @@ const CHECKER_PROPERTIES: LayerPropertySchema[] = [
 
 export const checkerLayerType: LayerTypeDefinition = {
   typeId: "patterns:checker",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Checker Pattern",
   icon: "grid",
   category: "draw",
@@ -90,7 +92,12 @@ export const checkerLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
-    const cellSize = (properties.cellSize as number) ?? 30;
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
+    const cellSize = ((properties.cellSize as number) ?? 30) * dsc;
     const angle = ((properties.angle as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
 
@@ -104,6 +111,7 @@ export const checkerLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     ctx.save();
     ctx.globalAlpha = layerOpacity;

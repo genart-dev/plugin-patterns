@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -336,6 +336,8 @@ const CIRCLE_RENDERERS: Record<string, CircleRenderer> = {
 
 export const circleLayerType: LayerTypeDefinition = {
   typeId: "patterns:circle",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Circle Pattern",
   icon: "circle",
   category: "draw",
@@ -360,12 +362,17 @@ export const circleLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
     const style = (properties.style as string) ?? "concentric";
-    const size = (properties.size as number) ?? 40;
+    const size = ((properties.size as number) ?? 40) * dsc;
     const color1 = (properties.color1 as string) ?? "#2c3e50";
     const color2 = (properties.color2 as string) ?? "#ecf0f1";
-    const lineWidth = (properties.lineWidth as number) ?? 2;
-    const gap = (properties.gap as number) ?? 6;
+    const lineWidth = ((properties.lineWidth as number) ?? 2) * dsc;
+    const gap = ((properties.gap as number) ?? 6) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
 
@@ -373,6 +380,7 @@ export const circleLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const renderer = CIRCLE_RENDERERS[style] ?? CIRCLE_RENDERERS.concentric!;
 

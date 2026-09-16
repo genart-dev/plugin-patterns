@@ -7,7 +7,15 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
+
+/**
+ * Device pixels per layout unit for the render in progress (ADR 111). The tile
+ * helpers below draw hairlines at a fixed width, and they are called
+ * synchronously from render(), which sets this first.
+ */
+let _dsc = 1;
+
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -183,7 +191,7 @@ function renderClassic(
     const ci = Math.floor(pt.rng1 * 3 + pt.rng2) % colors.length;
     ctx.fillStyle = colors[ci]!;
     ctx.strokeStyle = colors[(ci + 1) % colors.length]!;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * _dsc;
 
     ctx.save();
     ctx.translate(pt.x, pt.y);
@@ -270,7 +278,7 @@ function renderGeometric(
     const shape = Math.floor(pt.rng3 * 3);
 
     ctx.strokeStyle = color1;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.5 * _dsc;
     ctx.save();
     ctx.translate(pt.x, pt.y);
     ctx.rotate(angle);
@@ -312,7 +320,7 @@ function renderSquiggle(
   const points = jitteredGrid(diagonal, density, 311, size * 2);
 
   ctx.strokeStyle = color1;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2 * _dsc;
   ctx.lineCap = "round";
 
   for (const pt of points) {
@@ -358,6 +366,8 @@ const MEMPHIS_RENDERERS: Record<string, MemphisRenderer> = {
 
 export const memphisLayerType: LayerTypeDefinition = {
   typeId: "patterns:memphis",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Memphis Pattern",
   icon: "sparkle",
   category: "draw",
@@ -382,12 +392,20 @@ export const memphisLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+    _dsc = dsc;
+
     const style = (properties.style as string) ?? "classic";
-    const size = (properties.size as number) ?? 20;
+    const size = ((properties.size as number) ?? 20) * dsc;
     const color1 = (properties.color1 as string) ?? "#e74c3c";
     const color2 = (properties.color2 as string) ?? "#f1c40f";
     const color3 = (properties.color3 as string) ?? "#3498db";
-    const density = (properties.density as number) ?? 40;
+    // A count per 100x100 pixel area, so it scales with the square or the
+    // pattern gains shapes as the canvas grows.
+    const density = ((properties.density as number) ?? 40) / (dsc * dsc);
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
 
@@ -395,6 +413,7 @@ export const memphisLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     const renderer = MEMPHIS_RENDERERS[style] ?? MEMPHIS_RENDERERS.classic!;
 

@@ -7,7 +7,15 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
+
+/**
+ * Device pixels per layout unit for the render in progress (ADR 111). The tile
+ * helpers below draw hairlines at a fixed width, and they are called
+ * synchronously from render(), which sets this first.
+ */
+let _dsc = 1;
+
 
 const SQUARE_PROPERTIES: LayerPropertySchema[] = [
   {
@@ -47,7 +55,7 @@ function renderNested(ctx: CanvasRenderingContext2D, diagonal: number, size: num
       const x = -diagonal + col * unit;
       const y = -diagonal + row * unit;
       ctx.strokeStyle = color1;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 * _dsc;
       ctx.strokeRect(x, y, size, size);
       ctx.strokeRect(x + size * 0.2, y + size * 0.2, size * 0.6, size * 0.6);
       ctx.strokeRect(x + size * 0.35, y + size * 0.35, size * 0.3, size * 0.3);
@@ -140,7 +148,7 @@ function renderCirclesAndSquares(ctx: CanvasRenderingContext2D, diagonal: number
         ctx.fillRect(cx - size * 0.35, cy - size * 0.35, size * 0.7, size * 0.7);
       } else {
         ctx.strokeStyle = color1;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.5 * _dsc;
         ctx.beginPath();
         ctx.arc(cx, cy, size * 0.35, 0, Math.PI * 2);
         ctx.stroke();
@@ -161,6 +169,8 @@ const SQUARE_RENDERERS: Record<string, SquareRenderer> = {
 
 export const squareLayerType: LayerTypeDefinition = {
   typeId: "patterns:square",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Square Pattern",
   icon: "square",
   category: "draw",
@@ -177,16 +187,23 @@ export const squareLayerType: LayerTypeDefinition = {
     const w = Math.ceil(bounds.width);
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
+
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+    _dsc = dsc;
     const style = (properties.style as string) ?? "nested";
-    const size = (properties.size as number) ?? 30;
+    const size = ((properties.size as number) ?? 30) * dsc;
     const color1 = (properties.color1 as string) ?? "#2c3e50";
     const color2 = (properties.color2 as string) ?? "#ecf0f1";
     const color3 = (properties.color3 as string) ?? "#f39c12";
-    const gap = (properties.gap as number) ?? 2;
+    const gap = ((properties.gap as number) ?? 2) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
     let region: PatternRegion = { type: "bounds" };
     try { region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion; } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
     const renderer = SQUARE_RENDERERS[style] ?? (SQUARE_RENDERERS.nested as SquareRenderer);
     ctx.save();
     ctx.globalAlpha = layerOpacity;

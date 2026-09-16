@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -93,6 +93,8 @@ const HERRINGBONE_PROPERTIES: LayerPropertySchema[] = [
 
 export const herringboneLayerType: LayerTypeDefinition = {
   typeId: "patterns:herringbone",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Herringbone Pattern",
   icon: "chevrons",
   category: "draw",
@@ -117,18 +119,24 @@ export const herringboneLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
-    const blockWidth = (properties.blockWidth as number) ?? 30;
-    const blockHeight = (properties.blockHeight as number) ?? 10;
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+
+    const blockWidth = ((properties.blockWidth as number) ?? 30) * dsc;
+    const blockHeight = ((properties.blockHeight as number) ?? 10) * dsc;
     const angleDeg = (properties.angle as number) ?? 45;
     const color1 = (properties.color1 as string) ?? "#2c3e50";
     const color2 = (properties.color2 as string) ?? "#ecf0f1";
-    const gap = (properties.gap as number) ?? 1;
+    const gap = ((properties.gap as number) ?? 1) * dsc;
     const layerOpacity = (properties.opacity as number) ?? 1;
 
     let region: PatternRegion = { type: "bounds" };
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     ctx.save();
     ctx.globalAlpha = layerOpacity;

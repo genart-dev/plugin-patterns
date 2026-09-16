@@ -7,7 +7,7 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
 
 const CHAINLINK_PROPERTIES: LayerPropertySchema[] = [
   {
@@ -111,6 +111,8 @@ const CHAIN_RENDERERS: Record<string, ChainRenderer> = {
 
 export const chainlinkLayerType: LayerTypeDefinition = {
   typeId: "patterns:chainlink",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Chainlink Pattern",
   icon: "link",
   category: "draw",
@@ -127,16 +129,22 @@ export const chainlinkLayerType: LayerTypeDefinition = {
     const w = Math.ceil(bounds.width);
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
+
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
     const style = (properties.style as string) ?? "circle";
-    const size = (properties.size as number) ?? 24;
+    const size = ((properties.size as number) ?? 24) * dsc;
     const color1 = (properties.color1 as string) ?? "#7f8c8d";
     const color2 = (properties.color2 as string) ?? "#ecf0f1";
-    const lineWidth = (properties.lineWidth as number) ?? 2;
-    const gap = (properties.gap as number) ?? 4;
+    const lineWidth = ((properties.lineWidth as number) ?? 2) * dsc;
+    const gap = ((properties.gap as number) ?? 4) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const layerOpacity = (properties.opacity as number) ?? 1;
     let region: PatternRegion = { type: "bounds" };
     try { region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion; } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
     const renderer = CHAIN_RENDERERS[style] ?? CHAIN_RENDERERS.circle!;
     ctx.save();
     ctx.globalAlpha = layerOpacity;

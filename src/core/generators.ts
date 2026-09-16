@@ -12,6 +12,32 @@ import { mulberry32 } from "../shared/prng.js";
  * Generate all paths for a pattern fill layer.
  * Returns an array of GeneratedPath objects ready to be rendered.
  */
+/**
+ * Put a strategy's own numbers into device pixels (ADR 111). Spacings and
+ * stroke lengths are lengths, so they scale; the densities are counts per
+ * 100x100 pixel area, so they scale with the square or the pattern gains marks
+ * as the canvas grows.
+ */
+function scaleStrategy(strategy: PatternStrategy, scale: number): PatternStrategy {
+  if (scale === 1) return strategy;
+  switch (strategy.type) {
+    case "hatch":
+      return { ...strategy, spacing: strategy.spacing * scale };
+    case "crosshatch":
+      return { ...strategy, spacing: strategy.spacing * scale };
+    case "contour":
+      return { ...strategy, spacing: strategy.spacing * scale };
+    case "stipple":
+      return { ...strategy, density: strategy.density / (scale * scale) };
+    case "scumble":
+      return {
+        ...strategy,
+        density: strategy.density / (scale * scale),
+        strokeLength: strategy.strokeLength * scale,
+      };
+  }
+}
+
 export function generatePatternPaths(
   strategy: PatternStrategy,
   region: PatternRegion,
@@ -20,6 +46,7 @@ export function generatePatternPaths(
   bounds: LayerBounds,
   seed: number,
 ): GeneratedPath[] {
+  strategy = scaleStrategy(strategy, bounds.scale ?? 1);
   const rb = regionBounds(region, bounds);
   const evaluate = buildShadingEvaluator(shading, rb.x, rb.y, rb.width, rb.height);
   const rng = mulberry32(seed);

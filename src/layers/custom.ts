@@ -7,7 +7,15 @@ import type {
   ValidationError,
 } from "@genart-dev/core";
 import type { PatternRegion, CustomPatternDef, DrawCommand } from "../core/types.js";
-import { applyRegionClip } from "../core/region-utils.js";
+import { applyRegionClip, scaleRegion } from "../core/region-utils.js";
+
+/**
+ * Device pixels per layout unit for the render in progress (ADR 111). The tile
+ * helpers below draw hairlines at a fixed width, and they are called
+ * synchronously from render(), which sets this first.
+ */
+let _dsc = 1;
+
 
 // ---------------------------------------------------------------------------
 // Property schema
@@ -181,6 +189,8 @@ function resolvePattern(patternId: string): CustomPatternDef | null {
 
 export const customLayerType: LayerTypeDefinition = {
   typeId: "patterns:custom",
+  // Draws at the canvas's own resolution (ADR 111).
+  resolution: "device",
   displayName: "Custom Pattern",
   icon: "pencil",
   category: "draw",
@@ -205,8 +215,14 @@ export const customLayerType: LayerTypeDefinition = {
     const h = Math.ceil(bounds.height);
     if (w <= 0 || h <= 0) return;
 
+    // Device pixels per layout unit (ADR 111). The bounds arrive already
+    // scaled; the pattern's own lengths and its region come from the
+    // properties in layout units, so both are scaled to match.
+    const dsc = bounds.scale ?? 1;
+    _dsc = dsc;
+
     const patternId = (properties.patternId as string) ?? "";
-    const scale = (properties.scale as number) ?? 1;
+    const scale = ((properties.scale as number) ?? 1) * dsc;
     const rotation = ((properties.rotation as number) ?? 0) * (Math.PI / 180);
     const color = (properties.color as string) ?? "#000000";
     const backgroundColor = (properties.backgroundColor as string) ?? "#ffffff";
@@ -216,6 +232,7 @@ export const customLayerType: LayerTypeDefinition = {
     try {
       region = JSON.parse((properties.region as string) ?? '{"type":"bounds"}') as PatternRegion;
     } catch { /* use bounds */ }
+    region = scaleRegion(region, dsc);
 
     ctx.save();
     ctx.globalAlpha = layerOpacity;
@@ -228,9 +245,9 @@ export const customLayerType: LayerTypeDefinition = {
     if (!patternId) {
       // No pattern defined — draw placeholder crosshatch
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 * _dsc;
       ctx.globalAlpha = layerOpacity * 0.3;
-      const spacing = 20;
+      const spacing = 20 * dsc;
       for (let i = 0; i < bounds.width + bounds.height; i += spacing) {
         ctx.beginPath();
         ctx.moveTo(bounds.x + i, bounds.y);
